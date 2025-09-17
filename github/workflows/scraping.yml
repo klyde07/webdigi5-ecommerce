@@ -2,8 +2,7 @@ name: Automated Courir Scraping
 
 on:
   schedule:
-    - cron: '0 */3 * * *'  # Toutes les 3 heures
-  workflow_dispatch:  # Déclenchement manuel
+    - cron: '*/30 * * * *'  # Toutes les 30 minutes
 
 jobs:
   scrape:
