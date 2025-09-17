@@ -286,7 +286,10 @@ class CourirScraper:
             "https://www.courir.com/fr/c/chaussures/bottines-boots/",
             "https://www.courir.com/fr/c/chaussures/claquettes-tongs-mules/",
             "https://www.courir.com/fr/c/chaussures/ballerines/",
-            "https://www.courir.com/fr/c/chaussures/exclusivites/"
+            "https://www.courir.com/fr/c/chaussures/exclusivites/",
+            "https://www.courir.com/fr/c/femme/",
+            "https://www.courir.com/fr/c/homme/",
+            "https://www.courir.com/fr/c/enfant/"
         ]
         
         all_products = []
