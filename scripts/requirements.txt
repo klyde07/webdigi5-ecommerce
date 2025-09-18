@@ -1,7 +1,6 @@
 requests==2.31.0
 beautifulsoup4==4.12.2
-pandas==2.0.3
-numpy==1.24.3  # ✅ Version compatible avec pandas 2.0.3
 supabase==1.0.3
 python-dotenv==1.0.0
 lxml==4.9.3
+# On retire pandas et numpy pour utiliser des alternatives plus légères
