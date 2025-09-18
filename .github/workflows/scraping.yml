@@ -1,0 +1,41 @@
+name: Automated Courir Scraping
+
+on:
+  schedule:
+    # Choisissez UNE de ces options :
+    - cron: '0 8,14,20 * * *'   # Toutes les 30 minutes (si c'est ce que vous voulez)
+  workflow_dispatch:          # Permet de déclencher manuellement
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        pip install -r scripts/requirements.txt
+        
+    - name: Run scraping
+      run: |
+        cd scripts
+        python scraper.py
+        
+    - name: Upload logs
+      uses: actions/upload-artifact@v3
+      with:
+        name: scraping-logs-${{ github.run_id }}
+        path: scripts/scraping.log
+        retention-days: 3
