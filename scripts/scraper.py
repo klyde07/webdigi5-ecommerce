@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 import json
 import re
 import time
@@ -56,16 +55,16 @@ class CourirScraper:
 
     def clean_price(self, price_text):
         """Nettoyer et convertir les prix en float"""
-        if not price_text or pd.isna(price_text):
-            return None
+        if not price_text:
+            return 0.0
         try:
             price_str = str(price_text)
             cleaned = price_str.replace('€', '').replace(' ', '').strip()
             cleaned = cleaned.replace(',', '.')
             price_match = re.search(r'(\d+\.?\d*)', cleaned)
-            return float(price_match.group(1)) if price_match else None
+            return float(price_match.group(1)) if price_match else 0.0
         except (ValueError, TypeError):
-            return None
+            return 0.0
 
     def generate_product_description(self, product_data: Dict[str, Any]) -> str:
         """Générer une description automatique"""
@@ -155,7 +154,7 @@ class CourirScraper:
                 "name": name,
                 "brand": brand,
                 "sku": sku.upper(),
-                "base_price": price or 0.0,
+                "base_price": price,
                 "description": description,
                 "category": category,
                 "scraped_from": "courir.com",
@@ -286,10 +285,7 @@ class CourirScraper:
             "https://www.courir.com/fr/c/chaussures/bottines-boots/",
             "https://www.courir.com/fr/c/chaussures/claquettes-tongs-mules/",
             "https://www.courir.com/fr/c/chaussures/ballerines/",
-            "https://www.courir.com/fr/c/chaussures/exclusivites/",
-            "https://www.courir.com/fr/c/femme/",
-            "https://www.courir.com/fr/c/homme/",
-            "https://www.courir.com/fr/c/enfant/"
+            "https://www.courir.com/fr/c/chaussures/exclusivites/"
         ]
         
         all_products = []
