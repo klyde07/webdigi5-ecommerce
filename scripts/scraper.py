@@ -9,6 +9,9 @@ import logging
 import re
 import json
 import random
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -328,9 +331,16 @@ class CourirScraper:
         logging.info(f"Scraping de la catégorie: {category_url}")
         
         try:
-            response = self.session.get(category_url, timeout=15)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, 'html.parser')
+            # Utilise Selenium pour charger le JS dynamique
+            options = Options()
+            options.add_argument('--headless')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            driver = webdriver.Chrome(options=options)
+            driver.get(category_url)
+            time.sleep(5)  # Attendre le chargement JS
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            driver.quit()
             
             # Trouver tous les produits
             product_elements = soup.find_all('div', class_='product__tile')
