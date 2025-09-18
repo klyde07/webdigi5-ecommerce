@@ -46,5 +46,3 @@ backend/ # API Node.js / Express
 ## 👥 Auteurs
 - Étudiant Bootcamp Web Digi5
 
-
-Trigger GitHub Actions workflow
