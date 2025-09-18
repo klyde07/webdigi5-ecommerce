@@ -1,322 +1,210 @@
 import requests
 from bs4 import BeautifulSoup
-import json
-import re
-import time
-import random
-from urllib.parse import urljoin
-from datetime import datetime
-import hashlib
+import supabase
 import os
+from datetime import datetime
+import uuid
+import time
 import logging
-from typing import List, Dict, Any, Optional
-from supabase import create_client
 
 # Configuration du logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('scraping.log'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class CourirScraper:
     def __init__(self):
-        self.supabase = self._init_supabase()
-        self.session = self._create_session()
-        
-    def _init_supabase(self):
-        """Initialiser la connexion Supabase"""
-        try:
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE')
-            
-            if not supabase_url or not supabase_key:
-                logger.warning("Variables Supabase non configurées - mode simulation")
-                return None
-                
-            return create_client(supabase_url, supabase_key)
-        except Exception as e:
-            logger.error(f"Erreur connexion Supabase: {e}")
-            return None
-    
-    def _create_session(self):
-        """Créer une session requests"""
-        session = requests.Session()
-        session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        self.supabase_url = os.getenv('SUPABASE_URL')
+        self.supabase_key = os.getenv('SUPABASE_KEY')
+        self.client = supabase.create_client(self.supabase_url, self.supabase_key)
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
-        return session
+        
+        # Cache pour les marques et catégories
+        self.brands_cache = {}
+        self.categories_cache = {}
 
-    def clean_price(self, price_text):
-        """Nettoyer et convertir les prix en float"""
-        if not price_text:
-            return 0.0
+    def get_or_create_brand(self, brand_name):
+        """Récupère ou crée une marque"""
+        if brand_name in self.brands_cache:
+            return self.brands_cache[brand_name]
+        
         try:
-            price_str = str(price_text)
-            cleaned = price_str.replace('€', '').replace(' ', '').strip()
-            cleaned = cleaned.replace(',', '.')
-            price_match = re.search(r'(\d+\.?\d*)', cleaned)
-            return float(price_match.group(1)) if price_match else 0.0
-        except (ValueError, TypeError):
-            return 0.0
+            # Vérifie si la marque existe déjà
+            response = self.client.from_('brands').select('id').eq('name', brand_name).execute()
+            
+            if response.data:
+                brand_id = response.data[0]['id']
+            else:
+                # Crée la marque
+                new_brand = {
+                    'name': brand_name,
+                    'created_at': datetime.now().isoformat()
+                }
+                response = self.client.from_('brands').insert(new_brand).execute()
+                brand_id = response.data[0]['id']
+            
+            self.brands_cache[brand_name] = brand_id
+            return brand_id
+            
+        except Exception as e:
+            logging.error(f"Erreur avec la marque {brand_name}: {e}")
+            return None
 
-    def generate_product_description(self, product_data: Dict[str, Any]) -> str:
-        """Générer une description automatique"""
-        name = product_data.get('name', 'Produit')
-        brand = product_data.get('brand', 'Marque inconnue')
-        price = product_data.get('base_price', 0)
-        category = product_data.get('category', '')
+    def get_or_create_category(self, category_name, parent_id=None):
+        """Récupère ou crée une catégorie"""
+        cache_key = f"{category_name}_{parent_id}"
+        if cache_key in self.categories_cache:
+            return self.categories_cache[cache_key]
         
-        description = f"{brand} {name}. Chaussure de qualité supérieure."
-        
-        if category:
-            category_clean = category.replace('HOMME-', '').replace('CHAUSSURES-', '').lower()
-            description += f" Catégorie: {category_clean.capitalize()}."
-        
-        if price > 0:
-            description += f" Prix: {price}€."
-        
-        features = [
-            "Semelle confortable pour un usage quotidien.",
-            "Design moderne et tendance.",
-            "Matériaux de haute qualité.",
-            "Parfait pour le sport et le casual.",
-            "Style urbain et contemporain.",
-            "Confort optimal toute la journée."
-        ]
-        
-        description += " " + " ".join(random.sample(features, 2))
-        return description
-
-    def extract_gtm_data(self, item) -> Dict[str, Any]:
-        """Extraire les données GTM"""
-        gtm_data = {}
-        if item.get('data-gtm'):
-            try:
-                gtm_data = json.loads(item['data-gtm'].replace('&quot;', '"'))
-            except:
-                try:
-                    gtm_str = item['data-gtm'].replace('&quot;', '"')
-                    matches = re.findall(r'(\w+):"([^"]+)"', gtm_str)
-                    gtm_data = {k: v for k, v in matches}
-                except:
-                    pass
-        
-        data_attributes = {
-            'data-itemid': 'item_id',
-            'data-product-category': 'category',
-            'data-product-retailer': 'retailer'
-        }
-        
-        for attr, key in data_attributes.items():
-            if item.get(attr):
-                gtm_data[key] = item[attr]
-        
-        return gtm_data
-
-    def extract_product_data(self, item) -> Optional[Dict[str, Any]]:
-        """Extraire les données d'un produit"""
         try:
-            gtm_data = self.extract_gtm_data(item)
+            # Vérifie si la catégorie existe déjà
+            query = self.client.from_('categories').select('id').eq('name', category_name)
+            if parent_id:
+                query = query.eq('parent_id', parent_id)
+            else:
+                query = query.is_('parent_id', 'null')
             
-            # Nom et marque
-            name_elem = item.select_one('.product__name__product') or item.select_one('[data-product-name]')
-            brand_elem = item.select_one('.product__name__brand') or item.select_one('[data-brand]')
+            response = query.execute()
             
-            if not name_elem or not brand_elem:
-                return None
+            if response.data:
+                category_id = response.data[0]['id']
+            else:
+                # Crée la catégorie
+                new_category = {
+                    'name': category_name,
+                    'slug': category_name.lower().replace(' ', '-'),
+                    'parent_id': parent_id,
+                    'created_at': datetime.now().isoformat()
+                }
+                response = self.client.from_('categories').insert(new_category).execute()
+                category_id = response.data[0]['id']
             
-            name = name_elem.get_text(strip=True)
-            brand = brand_elem.get_text(strip=True)
+            self.categories_cache[cache_key] = category_id
+            return category_id
             
-            # Prix
-            price_elem = item.select_one('.price') or item.select_one('[data-price]')
-            price = self.clean_price(price_elem.get_text() if price_elem else '0')
+        except Exception as e:
+            logging.error(f"Erreur avec la catégorie {category_name}: {e}")
+            return None
+
+    def scrape_product(self, product_url, category_name):
+        """Scrape les détails d'un produit"""
+        try:
+            response = self.session.get(product_url, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
             
-            # SKU
-            sku = gtm_data.get('sku') or item.get('data-itemid') or hashlib.md5(f"{brand}{name}".encode()).hexdigest()[:8]
+            # Extraction des données du produit
+            # (Adaptez ces sélecteurs selon le site Courir)
+            name = soup.find('h1').get_text(strip=True) if soup.find('h1') else 'Nom inconnu'
+            brand_name = soup.find('meta', {'property': 'brand'}) or 'Marque inconnue'
+            price_text = soup.find('span', {'class': 'price'}).get_text(strip=True) if soup.find('span', {'class': 'price'}) else '0'
+            description = soup.find('div', {'class': 'description'}).get_text(strip=True) if soup.find('div', {'class': 'description'}) else ''
             
-            # Catégorie
-            category = gtm_data.get('category', '')
+            # Nettoyage du prix
+            price = float(''.join(filter(str.isdigit, price_text))) / 100 if price_text else 0
             
-            # Description
-            description = self.generate_product_description({
-                'name': name, 'brand': brand, 'base_price': price, 'category': category
-            })
+            # Récupération des IDs
+            brand_id = self.get_or_create_brand(brand_name)
+            category_id = self.get_or_create_category(category_name)
             
             product_data = {
-                "name": name,
-                "brand": brand,
-                "sku": sku.upper(),
-                "base_price": price,
-                "description": description,
-                "category": category,
-                "scraped_from": "courir.com",
-                "scraped_data": gtm_data,
-                "last_scraped": datetime.utcnow().isoformat()
+                'name': name,
+                'brand_id': brand_id,
+                'category_id': category_id,
+                'description': description,
+                'base_price': price,
+                'sku': str(uuid.uuid4())[:8],  # SKU temporaire
+                'scraped_from': product_url,
+                'scraped_data': {
+                    'original_url': product_url,
+                    'scraped_at': datetime.now().isoformat(),
+                    'raw_price': price_text
+                },
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat()
             }
             
             return product_data
             
         except Exception as e:
-            logger.error(f"Erreur extraction produit: {e}")
+            logging.error(f"Erreur scraping produit {product_url}: {e}")
             return None
 
-    def check_existing_product(self, sku: str) -> bool:
-        """Vérifier si le produit existe déjà"""
-        if not self.supabase:
-            return False
-            
-        try:
-            response = self.supabase.table('products')\
-                .select('sku')\
-                .eq('sku', sku)\
-                .execute()
-            return len(response.data) > 0
-        except Exception as e:
-            logger.error(f"Erreur vérification produit {sku}: {e}")
-            return False
-
-    def upsert_product(self, product_data: Dict[str, Any]) -> bool:
-        """Insérer ou mettre à jour un produit"""
-        try:
-            sku = product_data['sku']
-            
-            if self.supabase:
-                # Vérifier l'existence
-                exists = self.check_existing_product(sku)
-                
-                db_data = {
-                    'name': product_data['name'],
-                    'brand': product_data['brand'],
-                    'sku': sku,
-                    'base_price': product_data['base_price'],
-                    'description': product_data['description'],
-                    'category': product_data['category'],
-                    'scraped_from': product_data['scraped_from'],
-                    'scraped_data': json.dumps(product_data['scraped_data']),
-                    'last_scraped': product_data['last_scraped']
-                }
-                
-                if exists:
-                    # Mise à jour
-                    self.supabase.table('products')\
-                        .update(db_data)\
-                        .eq('sku', sku)\
-                        .execute()
-                    logger.info(f"Produit mis à jour: {sku}")
-                else:
-                    # Insertion
-                    self.supabase.table('products').insert(db_data).execute()
-                    logger.info(f"Nouveau produit inséré: {sku}")
-                
-                return True
-            else:
-                # Mode simulation
-                action = "MISE À JOUR" if random.random() > 0.7 else "INSERTION"
-                logger.info(f"SIMULATION {action}: {product_data['name']} ({sku})")
-                return True
-                
-        except Exception as e:
-            logger.error(f"Erreur upsert produit {product_data.get('sku')}: {e}")
-            return False
-
-    def scrape_category(self, url: str, max_products: int = 15) -> List[Dict[str, Any]]:
-        """Scraper une catégorie spécifique"""
-        logger.info(f"Scraping de la catégorie: {url}")
+    def scrape_category(self, category_url, category_name):
+        """Scrape tous les produits d'une catégorie"""
+        logging.info(f"Scraping de la catégorie: {category_url}")
         
         try:
-            response = self.session.get(url, timeout=30)
+            response = self.session.get(category_url, timeout=10)
             response.raise_for_status()
-            
             soup = BeautifulSoup(response.text, 'html.parser')
-            products = []
             
-            # Sélecteurs pour trouver les produits
-            selectors = [
-                'div.product__tile',
-                'div.product-tile',
-                'article.product',
-                'li.product-item',
-                '[data-gtm]'
-            ]
+            # Trouver tous les produits (adaptez le sélecteur)
+            products = soup.find_all('div', class_='product__tile')
+            logging.info(f"Trouvé {len(products)} produits avec: div.product__tile")
             
-            product_items = []
-            for selector in selectors:
-                product_items = soup.select(selector)
-                if product_items:
-                    logger.info(f"Trouvé {len(product_items)} produits avec: {selector}")
-                    break
+            successful_products = 0
             
-            if not product_items:
-                logger.warning(f"Aucun produit trouvé sur: {url}")
-                return []
-            
-            for i, item in enumerate(product_items[:max_products]):
-                product_data = self.extract_product_data(item)
-                if product_data:
-                    success = self.upsert_product(product_data)
-                    if success:
-                        products.append(product_data)
+            for product in products:
+                try:
+                    # Extraction du lien produit (adaptez le sélecteur)
+                    product_link = product.find('a', href=True)
+                    if not product_link:
+                        continue
                     
-                    # Délai respectueux entre les produits
-                    time.sleep(random.uniform(0.5, 1.5))
+                    product_url = product_link['href']
+                    if not product_url.startswith('http'):
+                        product_url = 'https://www.courir.com' + product_url
+                    
+                    # Scrape les détails du produit
+                    product_data = self.scrape_product(product_url, category_name)
+                    if not product_data:
+                        continue
+                    
+                    # Insertion dans Supabase
+                    response = self.client.from_('products').insert(product_data).execute()
+                    successful_products += 1
+                    logging.info(f"Produit inséré: {product_data['name']}")
+                    
+                    # Pause pour éviter le rate limiting
+                    time.sleep(1)
+                    
+                except Exception as e:
+                    logging.error(f"Erreur produit: {e}")
+                    continue
             
-            return products
+            return successful_products
             
         except Exception as e:
-            logger.error(f"Erreur scraping {url}: {e}")
-            return []
+            logging.error(f"Erreur catégorie {category_url}: {e}")
+            return 0
 
     def run(self):
-        """Exécuter le scraping complet"""
-        logger.info("🚀 Démarrage du scraping automatique Courir.com")
+        """Lance le scraping complet"""
+        logging.info("🚀 Démarrage du scraping automatique Courir.com")
         
-        # URLs des catégories à scraper
         categories = [
-            "https://www.courir.com/fr/c/chaussures/sneakers/",
-            "https://www.courir.com/fr/c/chaussures/mocassins-derbies/",
-            "https://www.courir.com/fr/c/chaussures/bottines-boots/",
-            "https://www.courir.com/fr/c/chaussures/claquettes-tongs-mules/",
-            "https://www.courir.com/fr/c/chaussures/ballerines/",
-            "https://www.courir.com/fr/c/chaussures/exclusivites/"
+            ('https://www.courir.com/fr/c/chaussures/sneakers/', 'Sneakers'),
+            ('https://www.courir.com/fr/c/chaussures/mocassins-derbies/', 'Mocassins & Derbies'),
+            ('https://www.courir.com/fr/c/chaussures/bottines-boots/', 'Bottines & Boots'),
+            ('https://www.courir.com/fr/c/chaussures/claquettes-tongs-mules/', 'Claquettes & Tongs'),
+            ('https://www.courir.com/fr/c/chaussures/ballerines/', 'Ballerines'),
+            ('https://www.courir.com/fr/c/chaussures/exclusivites/', 'Exclusivités')
         ]
         
-        all_products = []
-        total_start_time = time.time()
+        total_products = 0
         
-        for category_url in categories:
-            try:
-                category_start_time = time.time()
-                products = self.scrape_category(category_url, max_products=12)
-                all_products.extend(products)
-                
-                category_time = time.time() - category_start_time
-                logger.info(f"Catégorie traitée en {category_time:.1f}s: {len(products)} produits")
-                
-                # Délai entre les catégories
-                time.sleep(random.uniform(2, 4))
-                
-            except Exception as e:
-                logger.error(f"Erreur avec la catégorie {category_url}: {e}")
-                continue
+        for category_url, category_name in categories:
+            start_time = time.time()
+            products_count = self.scrape_category(category_url, category_name)
+            duration = time.time() - start_time
+            total_products += products_count
+            logging.info(f"Catégorie traitée en {duration:.1f}s: {products_count} produits")
         
-        total_time = time.time() - total_start_time
-        logger.info(f"✅ Scraping terminé en {total_time:.1f}s")
-        logger.info(f"📊 Total: {len(all_products)} produits traités")
-        
-        return all_products
+        logging.info(f"✅ Scraping terminé: {total_products} produits traités")
 
-def main():
-    """Point d'entrée principal"""
-    scraper = CourirScraper()
-    return scraper.run()
-
+# Exécution
 if __name__ == "__main__":
-    main()
+    scraper = CourirScraper()
+    scraper.run()
