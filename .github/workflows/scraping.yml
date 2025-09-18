@@ -12,7 +12,7 @@ jobs:
 
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE }}  # Aligné avec les secrets
+      SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}  # Aligné avec scraper.py
 
     steps:
     # Étape 1: 📥 Télécharger le code
