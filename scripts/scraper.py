@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 class CourirScraper:
     def __init__(self):
         self.supabase_url = os.getenv('SUPABASE_URL')
-        self.supabase_key = os.getenv('SUPABASE_KEY')
+        self.supabase_key = os.getenv('SUPABASE_SERVICE_ROLE')
         self.client = supabase.create_client(self.supabase_url, self.supabase_key)
         self.session = requests.Session()
         self.session.headers.update({
