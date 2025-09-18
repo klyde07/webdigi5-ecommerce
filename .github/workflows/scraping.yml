@@ -1,41 +1,36 @@
-name: Automated Courir Scraping
+name: 🚀 Scraping Automatique Courir.com
 
 on:
   schedule:
-    # Choisissez UNE de ces options :
-    - cron: '0 8,14,20 * * *'   # Toutes les 30 minutes (si c'est ce que vous voulez)
-  workflow_dispatch:          # Permet de déclencher manuellement
+    - cron: '*/30 * * * *'  # ⏰ Toutes les 30 minutes
+  workflow_dispatch:         # 🎮 Déclenchement manuel
 
 jobs:
   scrape:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+    runs-on: ubuntu-latest   # 💻 Machine virtuelle Ubuntu
+    timeout-minutes: 20      # ⏱️ Maximum 20 minutes d'exécution
+
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
-    
+
     steps:
-    - name: Checkout repository
+    # Étape 1: 📥 Télécharger le code
+    - name: Checkout du code
       uses: actions/checkout@v4
-      
-    - name: Set up Python
+
+    # Étape 2: 🐍 Installer Python
+    - name: Installation de Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-        cache: 'pip'
-        
-    - name: Install dependencies
-      run: |
-        pip install -r scripts/requirements.txt
-        
-    - name: Run scraping
+
+    # Étape 3: 📦 Installer les dépendances
+    - name: Installation des dépendances
+      run: pip install -r scripts/requirements.txt
+
+    # Étape 4: 🕷️ Lancer le scraping
+    - name: Exécution du scraping
       run: |
         cd scripts
         python scraper.py
-        
-    - name: Upload logs
-      uses: actions/upload-artifact@v3
-      with:
-        name: scraping-logs-${{ github.run_id }}
-        path: scripts/scraping.log
-        retention-days: 3
