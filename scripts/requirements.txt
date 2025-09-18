@@ -3,4 +3,4 @@ beautifulsoup4==4.12.2
 supabase==1.0.3
 python-dotenv==1.0.0
 lxml==4.9.3
-# On retire pandas et numpy pour utiliser des alternatives plus légères
+selenium==4.15.2
