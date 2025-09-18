@@ -25,7 +25,17 @@ jobs:
       with:
         python-version: '3.10'
 
-    # Étape 3: 📦 Mettre en cache les dépendances Python
+    # Étape 3: 📦 Installer Chrome et Chromedriver
+    - name: Installer Chrome et Chromedriver
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
+        CHROMEDRIVER_VERSION=$(curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE)
+        wget -N https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip -P ~/
+        unzip ~/chromedriver_linux64.zip -d ~/
+        sudo mv ~/chromedriver /usr/local/bin/
+
+    # Étape 4: 📦 Mettre en cache les dépendances Python
     - name: Cache des dépendances
       uses: actions/cache@v3
       with:
@@ -34,11 +44,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
 
-    # Étape 4: 📦 Installer les dépendances
+    # Étape 5: 📦 Installer les dépendances
     - name: Installation des dépendances
       run: pip install -r scripts/requirements.txt
 
-    # Étape 5: 🕷️ Lancer le scraping
+    # Étape 6: 🕷️ Lancer le scraping
     - name: Exécution du scraping
       run: |
         cd scripts
