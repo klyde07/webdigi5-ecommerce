@@ -2,17 +2,17 @@ name: 🚀 Scraping Automatique Courir.com
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # ⏰ Toutes les 30 minutes
+    - cron: '0 */6 * * *'  # ⏰ Toutes les 6 heures
   workflow_dispatch:         # 🎮 Déclenchement manuel
 
 jobs:
   scrape:
     runs-on: ubuntu-latest   # 💻 Machine virtuelle Ubuntu
-    timeout-minutes: 20      # ⏱️ Maximum 20 minutes d'exécution
+    timeout-minutes: 30      # ⏱️ Augmenté à 30 minutes pour plus de marge
 
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE }}  # Aligné avec les secrets
 
     steps:
     # Étape 1: 📥 Télécharger le code
@@ -25,12 +25,21 @@ jobs:
       with:
         python-version: '3.10'
 
-    # Étape 3: 📦 Installer les dépendances
+    # Étape 3: 📦 Mettre en cache les dépendances Python
+    - name: Cache des dépendances
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('scripts/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    # Étape 4: 📦 Installer les dépendances
     - name: Installation des dépendances
       run: pip install -r scripts/requirements.txt
 
-    # Étape 4: 🕷️ Lancer le scraping
+    # Étape 5: 🕷️ Lancer le scraping
     - name: Exécution du scraping
       run: |
         cd scripts
-        python scraper.py
+        python scraper.py || exit 1  # Exit avec erreur si le script échoue
