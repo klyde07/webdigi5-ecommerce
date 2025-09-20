@@ -4,12 +4,14 @@
   "main": "index.js",
   "scripts": {
     "start": "serve -s build",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "preinstall": "npm install --legacy-peer-deps" // Force l'installation des dépendances
   },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "serve": "^14.2.1" // Ajoute serve ici
   },
   "devDependencies": {
     "react-scripts": "^5.0.1"
