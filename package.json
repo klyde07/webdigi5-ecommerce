@@ -5,13 +5,13 @@
   "scripts": {
     "start": "serve -s build",
     "build": "react-scripts build",
-    "preinstall": "npm install --legacy-peer-deps" // Force l'installation des dépendances
+    "preinstall": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "axios": "^1.6.0",
-    "serve": "^14.2.1" // Ajoute serve ici
+    "serve": "^14.2.1"
   },
   "devDependencies": {
     "react-scripts": "^5.0.1"
