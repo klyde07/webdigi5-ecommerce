@@ -13,7 +13,6 @@ function App() {
   useEffect(() => {
     axios.get(`${apiUrl}/products`)
       .then(response => {
-        // Filtre les produits qui ont au moins une variante
         const filteredProducts = response.data.filter(product => 
           product.product_variants && product.product_variants.length > 0
         );
@@ -23,7 +22,22 @@ function App() {
         console.error('Erreur:', error);
         setError('Impossible de charger les produits. Réessayez plus tard.');
       });
-  }, []);
+
+    if (token) {
+      axios.get(`${apiUrl}/shopping-carts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(response => {
+        const newCart = {};
+        response.data.forEach(item => {
+          const product = products.find(p => p.product_variants.some(v => v.id === item.product_variant_id));
+          if (product) newCart[product.id] = item.quantity;
+        });
+        setCart(newCart);
+      })
+      .catch(err => console.error('Erreur chargement panier:', err));
+    }
+  }, [token, products]);
 
   const addToCart = async (productId) => {
     if (!token) {
@@ -32,11 +46,7 @@ function App() {
     }
     try {
       const product = products.find(p => p.id === productId);
-      console.log('Ajout au panier:', { productId, productVariants: product.product_variants });
       const variant = product.product_variants[0];
-      if (!variant) {
-        throw new Error('Aucune variante disponible pour ce produit.');
-      }
       console.log('Ajout au panier:', { productId, variantId: variant.id, token });
       const response = await axios.get(`${apiUrl}/shopping-carts`, {
         headers: { Authorization: `Bearer ${token}` }
