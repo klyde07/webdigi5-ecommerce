@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import CookieConsent from 'react-cookie-consent';
+import Confidentialite from './Confidentialite';
 import './styles.css';
 
 function App() {
@@ -97,67 +99,72 @@ function App() {
   if (error) return <div className="error">{error}</div>;
 
   return (
-    <div>
-      <CookieConsent
-        location="bottom"
-        buttonText="Accepter"
-        cookieName="myAwesomeCookie"
-        style={{ background: '#2B373B' }}
-        buttonStyle={{ color: '#4e503b', fontSize: '13px' }}
-        expires={150}
-      >
-        Ce site utilise des cookies pour améliorer votre expérience.{' '}
-        <a href="/confidentialite" style={{ color: '#fff' }}>En savoir plus</a>
-      </CookieConsent>
-      <h1>E-commerce</h1>
+    <Router>
       <div>
-        {!token ? (
-          <form onSubmit={handleLogin}>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mot de passe"
-            />
-            <button type="submit">Connexion</button>
-          </form>
+        <CookieConsent
+          location="bottom"
+          buttonText="Accepter"
+          cookieName="myAwesomeCookie"
+          style={{ background: '#2B373B' }}
+          buttonStyle={{ color: '#4e503b', fontSize: '13px' }}
+          expires={150}
+        >
+          Ce site utilise des cookies pour améliorer votre expérience.{' '}
+          <Link to="/confidentialite" style={{ color: '#fff' }}>En savoir plus</Link>
+        </CookieConsent>
+        <h1>E-commerce</h1>
+        <div>
+          {!token ? (
+            <form onSubmit={handleLogin}>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mot de passe"
+              />
+              <button type="submit">Connexion</button>
+            </form>
+          ) : (
+            <button onClick={handleLogout}>Déconnexion</button>
+          )}
+        </div>
+        <h2>Liste des produits</h2>
+        {products.length === 0 ? (
+          <p>Aucun produit disponible pour le moment.</p>
         ) : (
-          <button onClick={handleLogout}>Déconnexion</button>
+          <ul>
+            {products.map(product => (
+              <li key={product.id}>
+                {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
+                <button onClick={() => addToCart(product.id)} disabled={!token}>
+                  Ajouter au panier
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {token && Object.keys(cart).length > 0 && (
+          <div>
+            <h2>Panier</h2>
+            <ul>
+              {Object.entries(cart).map(([id, qty]) => {
+                const product = products.find(p => p.id === id);
+                return <li key={id}>{product.name} x{qty}</li>;
+              })}
+            </ul>
+          </div>
         )}
       </div>
-      <h2>Liste des produits</h2>
-      {products.length === 0 ? (
-        <p>Aucun produit disponible pour le moment.</p>
-      ) : (
-        <ul>
-          {products.map(product => (
-            <li key={product.id}>
-              {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
-              <button onClick={() => addToCart(product.id)} disabled={!token}>
-                Ajouter au panier
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {token && Object.keys(cart).length > 0 && (
-        <div>
-          <h2>Panier</h2>
-          <ul>
-            {Object.entries(cart).map(([id, qty]) => {
-              const product = products.find(p => p.id === id);
-              return <li key={id}>{product.name} x{qty}</li>;
-            })}
-          </ul>
-        </div>
-      )}
-    </div>
+      <Routes>
+        <Route path="/confidentialite" element={<Confidentialite />} />
+      </Routes>
+    </Router>
   );
 }
 
