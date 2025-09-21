@@ -53,3 +53,13 @@ li {
   color: red;
   text-align: center;
 }
+.CookieConsent {
+  font-size: 14px;
+  padding: 10px;
+  color: #fff;
+  text-align: center;
+}
+.CookieConsent a {
+  color: #ffd700;
+  text-decoration: underline;
+}
