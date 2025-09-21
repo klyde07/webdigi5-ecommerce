@@ -96,6 +96,30 @@ function App() {
     localStorage.removeItem('token');
   };
 
+  const handleCheckout = async () => {
+    if (!token) {
+      setError('Veuillez vous connecter pour passer commande.');
+      return;
+    }
+    try {
+      const orderItems = Object.keys(cart).map(productId => {
+        const product = products.find(p => p.id === productId);
+        const variant = product.product_variants[0];
+        return { product_variant_id: variant.id, quantity: cart[productId] };
+      });
+      await axios.post(
+        `${apiUrl}/orders`,
+        { items: orderItems },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert('Commande passée avec succès ! (Simulation)');
+      setCart({}); // Vide le panier après commande
+    } catch (err) {
+      console.error('Erreur checkout:', err.response?.data || err.message);
+      setError(`Erreur lors de la commande: ${err.response?.data?.error || err.message}. Réessayez.`);
+    }
+  };
+
   if (error) return <div className="error">{error}</div>;
 
   return (
@@ -158,6 +182,7 @@ function App() {
                 return <li key={id}>{product.name} x{qty}</li>;
               })}
             </ul>
+            <button onClick={handleCheckout}>Passer commande</button>
           </div>
         )}
       </div>
