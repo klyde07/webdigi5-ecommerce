@@ -5,7 +5,9 @@ function App() {
   const [products, setProducts] = useState([]);
   const [error, setError] = useState(null);
   const [cart, setCart] = useState({});
-  const [token, setToken] = useState(localStorage.getItem('token') || null); // Stocke le token
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
 
   useEffect(() => {
@@ -24,7 +26,7 @@ function App() {
     }
     try {
       const product = products.find(p => p.id === productId);
-      const variant = product.product_variants[0]; // Prend la première variante pour simplifier
+      const variant = product.product_variants[0];
       await axios.post(
         `${apiUrl}/shopping-carts`,
         { product_variant_id: variant.id, quantity: 1 },
@@ -37,33 +39,68 @@ function App() {
     }
   };
 
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post(`${apiUrl}/auth/login`, { email, password });
+      const newToken = response.data.token;
+      setToken(newToken);
+      localStorage.setItem('token', newToken);
+      setError(null);
+    } catch (err) {
+      console.error('Erreur login:', err);
+      setError('Échec de la connexion. Vérifiez vos identifiants.');
+    }
+  };
+
   if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
   return (
     <div>
-      <h1>Liste des produits</h1>
-      {products.length === 0 ? (
-        <p>Aucun produit disponible pour le moment.</p>
+      {!token ? (
+        <form onSubmit={handleLogin}>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Mot de passe"
+          />
+          <button type="submit">Connexion</button>
+        </form>
       ) : (
-        <ul>
-          {products.map(product => (
-            <li key={product.id}>
-              {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
-              <button onClick={() => addToCart(product.id)}>Ajouter au panier</button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {Object.keys(cart).length > 0 && (
-        <div>
-          <h2>Panier</h2>
-          <ul>
-            {Object.entries(cart).map(([id, qty]) => {
-              const product = products.find(p => p.id === id);
-              return <li key={id}>{product.name} x{qty}</li>;
-            })}
-          </ul>
-        </div>
+        <>
+          <h1>Liste des produits</h1>
+          {products.length === 0 ? (
+            <p>Aucun produit disponible pour le moment.</p>
+          ) : (
+            <ul>
+              {products.map(product => (
+                <li key={product.id}>
+                  {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
+                  <button onClick={() => addToCart(product.id)}>Ajouter au panier</button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {Object.keys(cart).length > 0 && (
+            <div>
+              <h2>Panier</h2>
+              <ul>
+                {Object.entries(cart).map(([id, qty]) => {
+                  const product = products.find(p => p.id === id);
+                  return <li key={id}>{product.name} x{qty}</li>;
+                })}
+              </ul>
+            </div>
+          )}
+          <button onClick={() => { setToken(null); localStorage.removeItem('token'); }}>Déconnexion</button>
+        </>
       )}
     </div>
   );
