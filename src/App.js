@@ -12,7 +12,7 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [orderStatus, setOrderStatus] = useState(null); // Nouvel état pour le statut
+  const [orderStatus, setOrderStatus] = useState(null);
   const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
 
   useEffect(() => {
@@ -113,13 +113,13 @@ function App() {
         { items: orderItems },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      // Vérifie le statut de la dernière commande
       const response = await axios.get(`${apiUrl}/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const latestOrder = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
       setOrderStatus(latestOrder?.status || 'Inconnu');
       alert('Commande passée avec succès ! (Simulation)');
+      alert('Email de confirmation envoyé ! (Simulation)'); // Simulation email
       setCart({}); // Vide le panier
     } catch (err) {
       console.error('Erreur checkout:', err.response?.data || err.message);
