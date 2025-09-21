@@ -27,14 +27,27 @@ function App() {
     try {
       const product = products.find(p => p.id === productId);
       const variant = product.product_variants[0];
-      await axios.post(
-        `${apiUrl}/shopping-carts`,
-        { product_variant_id: variant.id, quantity: 1 },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // Vérifie si l'item existe déjà
+      const response = await axios.get(`${apiUrl}/shopping-carts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const existingItem = response.data.find(item => item.product_variants[0].id === variant.id);
+      if (existingItem) {
+        await axios.put(
+          `${apiUrl}/shopping-carts/${existingItem.id}`, // Ajuste selon ton backend
+          { quantity: existingItem.quantity + 1 },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        await axios.post(
+          `${apiUrl}/shopping-carts`,
+          { product_variant_id: variant.id, quantity: 1 },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
       setCart(prev => ({ ...prev, [productId]: (prev[productId] || 0) + 1 }));
     } catch (err) {
-      console.error('Erreur ajout panier:', err);
+      console.error('Erreur ajout panier:', err.response?.data || err.message);
       setError('Erreur lors de l’ajout au panier. Réessayez.');
     }
   };
