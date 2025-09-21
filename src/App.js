@@ -53,54 +53,65 @@ function App() {
     }
   };
 
+  const handleLogout = () => {
+    setToken(null);
+    setCart({});
+    localStorage.removeItem('token');
+  };
+
   if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
   return (
     <div>
-      {!token ? (
-        <form onSubmit={handleLogin}>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Mot de passe"
-          />
-          <button type="submit">Connexion</button>
-        </form>
+      <h1>E-commerce</h1>
+      <div>
+        {!token ? (
+          <form onSubmit={handleLogin} style={{ marginBottom: '20px' }}>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              style={{ marginRight: '10px' }}
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mot de passe"
+              style={{ marginRight: '10px' }}
+            />
+            <button type="submit">Connexion</button>
+          </form>
+        ) : (
+          <button onClick={handleLogout} style={{ marginBottom: '20px' }}>Déconnexion</button>
+        )}
+      </div>
+      <h2>Liste des produits</h2>
+      {products.length === 0 ? (
+        <p>Aucun produit disponible pour le moment.</p>
       ) : (
-        <>
-          <h1>Liste des produits</h1>
-          {products.length === 0 ? (
-            <p>Aucun produit disponible pour le moment.</p>
-          ) : (
-            <ul>
-              {products.map(product => (
-                <li key={product.id}>
-                  {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
-                  <button onClick={() => addToCart(product.id)}>Ajouter au panier</button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {Object.keys(cart).length > 0 && (
-            <div>
-              <h2>Panier</h2>
-              <ul>
-                {Object.entries(cart).map(([id, qty]) => {
-                  const product = products.find(p => p.id === id);
-                  return <li key={id}>{product.name} x{qty}</li>;
-                })}
-              </ul>
-            </div>
-          )}
-          <button onClick={() => { setToken(null); localStorage.removeItem('token'); }}>Déconnexion</button>
-        </>
+        <ul>
+          {products.map(product => (
+            <li key={product.id}>
+              {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
+              <button onClick={() => addToCart(product.id)} disabled={!token}>
+                Ajouter au panier
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {token && Object.keys(cart).length > 0 && (
+        <div>
+          <h2>Panier</h2>
+          <ul>
+            {Object.entries(cart).map(([id, qty]) => {
+              const product = products.find(p => p.id === id);
+              return <li key={id}>{product.name} x{qty}</li>;
+            })}
+          </ul>
+        </div>
       )}
     </div>
   );
