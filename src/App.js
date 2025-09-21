@@ -12,6 +12,7 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [orderStatus, setOrderStatus] = useState(null); // Nouvel état pour le statut
   const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
 
   useEffect(() => {
@@ -112,8 +113,14 @@ function App() {
         { items: orderItems },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      // Vérifie le statut de la dernière commande
+      const response = await axios.get(`${apiUrl}/orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const latestOrder = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      setOrderStatus(latestOrder?.status || 'Inconnu');
       alert('Commande passée avec succès ! (Simulation)');
-      setCart({}); // Vide le panier après commande
+      setCart({}); // Vide le panier
     } catch (err) {
       console.error('Erreur checkout:', err.response?.data || err.message);
       setError(`Erreur lors de la commande: ${err.response?.data?.error || err.message}. Réessayez.`);
@@ -183,6 +190,7 @@ function App() {
               })}
             </ul>
             <button onClick={handleCheckout}>Passer commande</button>
+            {orderStatus && <p>Statut de votre dernière commande : {orderStatus}</p>}
           </div>
         )}
       </div>
