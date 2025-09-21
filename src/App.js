@@ -1,153 +1,152 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+  import React, { useEffect, useState } from 'react';
+  import axios from 'axios';
+  import './styles.css';
 
-function App() {
-  const [products, setProducts] = useState([]);
-  const [error, setError] = useState(null);
-  const [cart, setCart] = useState({});
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
+  function App() {
+    const [products, setProducts] = useState([]);
+    const [error, setError] = useState(null);
+    const [cart, setCart] = useState({});
+    const [token, setToken] = useState(localStorage.getItem('token') || null);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
 
-  useEffect(() => {
-    axios.get(`${apiUrl}/products`)
-      .then(response => {
-        const filteredProducts = response.data.filter(product => 
-          product.product_variants && product.product_variants.length > 0
-        );
-        setProducts(filteredProducts);
-      })
-      .catch(error => {
-        console.error('Erreur:', error);
-        setError('Impossible de charger les produits. Réessayez plus tard.');
-      });
-
-    if (token) {
-      axios.get(`${apiUrl}/shopping-carts`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(response => {
-        const newCart = {};
-        response.data.forEach(item => {
-          const product = products.find(p => p.product_variants.some(v => v.id === item.product_variant_id));
-          if (product) newCart[product.id] = item.quantity;
+    useEffect(() => {
+      axios.get(`${apiUrl}/products`)
+        .then(response => {
+          const filteredProducts = response.data.filter(product => 
+            product.product_variants && product.product_variants.length > 0
+          );
+          setProducts(filteredProducts);
+        })
+        .catch(error => {
+          console.error('Erreur:', error);
+          setError('Impossible de charger les produits. Réessayez plus tard.');
         });
-        setCart(newCart);
-      })
-      .catch(err => console.error('Erreur chargement panier:', err));
-    }
-  }, [token, products]);
 
-  const addToCart = async (productId) => {
-    if (!token) {
-      setError('Veuillez vous connecter pour ajouter au panier.');
-      return;
-    }
-    try {
-      const product = products.find(p => p.id === productId);
-      const variant = product.product_variants[0];
-      console.log('Ajout au panier:', { productId, variantId: variant.id, token });
-      const response = await axios.get(`${apiUrl}/shopping-carts`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const existingItem = response.data.find(item => item.product_variants && item.product_variants[0]?.id === variant.id);
-      if (existingItem) {
-        await axios.put(
-          `${apiUrl}/shopping-carts/${existingItem.id}`,
-          { quantity: existingItem.quantity + 1 },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } else {
-        await axios.post(
-          `${apiUrl}/shopping-carts`,
-          { product_variant_id: variant.id, quantity: 1 },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+      if (token) {
+        axios.get(`${apiUrl}/shopping-carts`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(response => {
+          const newCart = {};
+          response.data.forEach(item => {
+            const product = products.find(p => p.product_variants.some(v => v.id === item.product_variant_id));
+            if (product) newCart[product.id] = item.quantity;
+          });
+          setCart(newCart);
+        })
+        .catch(err => console.error('Erreur chargement panier:', err));
       }
-      setCart(prev => ({ ...prev, [productId]: (prev[productId] || 0) + 1 }));
-    } catch (err) {
-      console.error('Erreur ajout panier:', err.response?.data || err.message);
-      setError(`Erreur lors de l’ajout au panier: ${err.response?.data?.error || err.message}. Réessayez.`);
-    }
-  };
+    }, [token, products]);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post(`${apiUrl}/auth/login`, { email, password });
-      const newToken = response.data.token;
-      setToken(newToken);
-      localStorage.setItem('token', newToken);
-      setError(null);
-    } catch (err) {
-      console.error('Erreur login:', err);
-      setError('Échec de la connexion. Vérifiez vos identifiants.');
-    }
-  };
+    const addToCart = async (productId) => {
+      if (!token) {
+        setError('Veuillez vous connecter pour ajouter au panier.');
+        return;
+      }
+      try {
+        const product = products.find(p => p.id === productId);
+        const variant = product.product_variants[0];
+        console.log('Ajout au panier:', { productId, variantId: variant.id, token });
+        const response = await axios.get(`${apiUrl}/shopping-carts`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const existingItem = response.data.find(item => item.product_variants && item.product_variants[0]?.id === variant.id);
+        if (existingItem) {
+          await axios.put(
+            `${apiUrl}/shopping-carts/${existingItem.id}`,
+            { quantity: existingItem.quantity + 1 },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        } else {
+          await axios.post(
+            `${apiUrl}/shopping-carts`,
+            { product_variant_id: variant.id, quantity: 1 },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        }
+        setCart(prev => ({ ...prev, [productId]: (prev[productId] || 0) + 1 }));
+      } catch (err) {
+        console.error('Erreur ajout panier:', err.response?.data || err.message);
+        setError(`Erreur lors de l’ajout au panier: ${err.response?.data?.error || err.message}. Réessayez.`);
+      }
+    };
 
-  const handleLogout = () => {
-    setToken(null);
-    setCart({});
-    localStorage.removeItem('token');
-  };
+    const handleLogin = async (e) => {
+      e.preventDefault();
+      try {
+        const response = await axios.post(`${apiUrl}/auth/login`, { email, password });
+        const newToken = response.data.token;
+        setToken(newToken);
+        localStorage.setItem('token', newToken);
+        setError(null);
+      } catch (err) {
+        console.error('Erreur login:', err);
+        setError('Échec de la connexion. Vérifiez vos identifiants.');
+      }
+    };
 
-  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+    const handleLogout = () => {
+      setToken(null);
+      setCart({});
+      localStorage.removeItem('token');
+    };
 
-  return (
-    <div>
-      <h1>E-commerce</h1>
+    if (error) return <div className="error">{error}</div>;
+
+    return (
       <div>
-        {!token ? (
-          <form onSubmit={handleLogin} style={{ marginBottom: '20px' }}>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              style={{ marginRight: '10px' }}
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mot de passe"
-              style={{ marginRight: '10px' }}
-            />
-            <button type="submit">Connexion</button>
-          </form>
+        <h1>E-commerce</h1>
+        <div>
+          {!token ? (
+            <form onSubmit={handleLogin}>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mot de passe"
+              />
+              <button type="submit">Connexion</button>
+            </form>
+          ) : (
+            <button onClick={handleLogout}>Déconnexion</button>
+          )}
+        </div>
+        <h2>Liste des produits</h2>
+        {products.length === 0 ? (
+          <p>Aucun produit disponible pour le moment.</p>
         ) : (
-          <button onClick={handleLogout} style={{ marginBottom: '20px' }}>Déconnexion</button>
+          <ul>
+            {products.map(product => (
+              <li key={product.id}>
+                {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
+                <button onClick={() => addToCart(product.id)} disabled={!token}>
+                  Ajouter au panier
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {token && Object.keys(cart).length > 0 && (
+          <div>
+            <h2>Panier</h2>
+            <ul>
+              {Object.entries(cart).map(([id, qty]) => {
+                const product = products.find(p => p.id === id);
+                return <li key={id}>{product.name} x{qty}</li>;
+              })}
+            </ul>
+          </div>
         )}
       </div>
-      <h2>Liste des produits</h2>
-      {products.length === 0 ? (
-        <p>Aucun produit disponible pour le moment.</p>
-      ) : (
-        <ul>
-          {products.map(product => (
-            <li key={product.id}>
-              {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
-              <button onClick={() => addToCart(product.id)} disabled={!token}>
-                Ajouter au panier
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {token && Object.keys(cart).length > 0 && (
-        <div>
-          <h2>Panier</h2>
-          <ul>
-            {Object.entries(cart).map(([id, qty]) => {
-              const product = products.find(p => p.id === id);
-              return <li key={id}>{product.name} x{qty}</li>;
-            })}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
+    );
+  }
 
-export default App;
+  export default App;
