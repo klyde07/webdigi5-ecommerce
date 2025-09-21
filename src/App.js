@@ -19,38 +19,39 @@ function App() {
       });
   }, []);
 
-  const addToCart = async (productId) => {
-    if (!token) {
-      setError('Veuillez vous connecter pour ajouter au panier.');
-      return;
+const addToCart = async (productId) => {
+  if (!token) {
+    setError('Veuillez vous connecter pour ajouter au panier.');
+    return;
+  }
+  try {
+    const product = products.find(p => p.id === productId);
+    const variant = product.product_variants[0];
+    console.log('Ajout au panier:', { productId, variantId: variant.id, token });
+    // Vérifie si l'item existe déjà
+    const response = await axios.get(`${apiUrl}/shopping-carts`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const existingItem = response.data.find(item => item.product_variants[0].id === variant.id);
+    if (existingItem) {
+      await axios.put(
+        `${apiUrl}/shopping-carts/${existingItem.id}`,
+        { quantity: existingItem.quantity + 1 },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } else {
+      await axios.post(
+        `${apiUrl}/shopping-carts`,
+        { product_variant_id: variant.id, quantity: 1 },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
     }
-    try {
-      const product = products.find(p => p.id === productId);
-      const variant = product.product_variants[0];
-      // Vérifie si l'item existe déjà
-      const response = await axios.get(`${apiUrl}/shopping-carts`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const existingItem = response.data.find(item => item.product_variants[0].id === variant.id);
-      if (existingItem) {
-        await axios.put(
-          `${apiUrl}/shopping-carts/${existingItem.id}`, // Ajuste selon ton backend
-          { quantity: existingItem.quantity + 1 },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } else {
-        await axios.post(
-          `${apiUrl}/shopping-carts`,
-          { product_variant_id: variant.id, quantity: 1 },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      }
-      setCart(prev => ({ ...prev, [productId]: (prev[productId] || 0) + 1 }));
-    } catch (err) {
-      console.error('Erreur ajout panier:', err.response?.data || err.message);
-      setError('Erreur lors de l’ajout au panier. Réessayez.');
-    }
-  };
+    setCart(prev => ({ ...prev, [productId]: (prev[productId] || 0) + 1 }));
+  } catch (err) {
+    console.error('Erreur ajout panier:', err.response?.data || err.message);
+    setError(`Erreur lors de l’ajout au panier: ${err.response?.data?.error || err.message}. Réessayez.`);
+  }
+};
 
   const handleLogin = async (e) => {
     e.preventDefault();
