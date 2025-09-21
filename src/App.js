@@ -5,6 +5,7 @@ function App() {
   const [products, setProducts] = useState([]);
   const [error, setError] = useState(null);
   const [cart, setCart] = useState({});
+  const [token, setToken] = useState(localStorage.getItem('token') || null); // Stocke le token
   const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
 
   useEffect(() => {
@@ -16,8 +17,24 @@ function App() {
       });
   }, []);
 
-  const addToCart = (productId) => {
-    setCart(prev => ({ ...prev, [productId]: (prev[productId] || 0) + 1 }));
+  const addToCart = async (productId) => {
+    if (!token) {
+      setError('Veuillez vous connecter pour ajouter au panier.');
+      return;
+    }
+    try {
+      const product = products.find(p => p.id === productId);
+      const variant = product.product_variants[0]; // Prend la première variante pour simplifier
+      await axios.post(
+        `${apiUrl}/shopping-carts`,
+        { product_variant_id: variant.id, quantity: 1 },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setCart(prev => ({ ...prev, [productId]: (prev[productId] || 0) + 1 }));
+    } catch (err) {
+      console.error('Erreur ajout panier:', err);
+      setError('Erreur lors de l’ajout au panier. Réessayez.');
+    }
   };
 
   if (error) return <div style={{ color: 'red' }}>{error}</div>;
