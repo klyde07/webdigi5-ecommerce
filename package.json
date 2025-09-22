@@ -4,10 +4,9 @@
   "description": "E-commerce React Frontend",
   "type": "module",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+  "start": "node server.js",
+  "build": "echo 'No build step required'"
+}
   },
   "dependencies": {
     "react": "^18.2.0",
