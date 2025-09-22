@@ -12,6 +12,10 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [orderStatus, setOrderStatus] = useState(null);
   const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
 
@@ -91,6 +95,30 @@ function App() {
     }
   };
 
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    if (!signupEmail || !signupPassword || !firstName || !lastName) {
+      setError('Tous les champs sont requis.');
+      return;
+    }
+    try {
+      await axios.post(`${apiUrl}/auth/signup`, { 
+        email: signupEmail, 
+        password: signupPassword, 
+        first_name: firstName, 
+        last_name: lastName 
+      });
+      setError('Inscription réussie ! Connectez-vous.');
+      setSignupEmail('');
+      setSignupPassword('');
+      setFirstName('');
+      setLastName('');
+    } catch (err) {
+      console.error('Erreur signup:', err);
+      setError(`Échec de l’inscription: ${err.response?.data?.error || err.message}. Réessayez.`);
+    }
+  };
+
   const handleLogout = () => {
     setToken(null);
     setCart({});
@@ -146,21 +174,50 @@ function App() {
         <h1>E-commerce</h1>
         <div>
           {!token ? (
-            <form onSubmit={handleLogin}>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-              />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mot de passe"
-              />
-              <button type="submit">Connexion</button>
-            </form>
+            <>
+              <form onSubmit={handleLogin}>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mot de passe"
+                />
+                <button type="submit">Connexion</button>
+              </form>
+              <form onSubmit={handleSignup}>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Prénom"
+                />
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Nom"
+                />
+                <input
+                  type="email"
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  placeholder="Email"
+                />
+                <input
+                  type="password"
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  placeholder="Mot de passe"
+                />
+                <button type="submit">Inscription</button>
+              </form>
+            </>
           ) : (
             <button onClick={handleLogout}>Déconnexion</button>
           )}
