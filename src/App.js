@@ -4,6 +4,19 @@ import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import CookieConsent from 'react-cookie-consent';
 import Confidentialite from './Confidentialite';
 import './styles.css';
+import { useSearchParams } from 'react-router-dom';
+
+// Dans la fonction App()
+const [searchParams] = useSearchParams();
+useEffect(() => {
+  const error = searchParams.get('error');
+  const errorCode = searchParams.get('error_code');
+  if (errorCode === 'otp_verified') {
+    alert('Email vérifié avec succès !');
+  } else if (error) {
+    setError(`Erreur de vérification: ${error} (${errorCode})`);
+  }
+}, [searchParams]);
 
 function App() {
   const [products, setProducts] = useState([]);
