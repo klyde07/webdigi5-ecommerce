@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import CookieConsent from 'react-cookie-consent';
+// Dans ton App.js, vérifie que l'import est :
+import CookieConsent from "react-cookie-consent";
 import Confidentialite from './Confidentialite';
 import './styles.css';
 
