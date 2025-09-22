@@ -2,11 +2,11 @@
   "name": "webdigi5-ecommerce",
   "version": "1.0.0",
   "description": "E-commerce React Frontend",
-  "type": "module",
   "scripts": {
-  "start": "node server.js",
-  "build": "echo 'No build step required'"
-}
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -29,5 +29,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
