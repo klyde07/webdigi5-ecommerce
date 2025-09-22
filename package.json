@@ -4,7 +4,6 @@
   "description": "E-commerce React Frontend",
   "type": "module",
   "scripts": {
-    "dev": "react-scripts start",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
@@ -31,9 +30,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
   }
 }
