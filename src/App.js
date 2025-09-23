@@ -3,7 +3,7 @@ import axios from 'axios';
 import { BrowserRouter as Router, Route, Routes, Link, useSearchParams } from 'react-router-dom';
 import CookieConsent from 'react-cookie-consent';
 import Confidentialite from './Confidentialite';
-import AdminLogin from './AdminLogin'; // Importation unique
+import AdminLogin from './AdminLogin';
 import './styles.css';
 
 function App() {
@@ -170,129 +170,106 @@ function App() {
 
   return (
     <Router>
-      <div>
-        <CookieConsent
-          location="bottom"
-          buttonText="Accepter"
-          cookieName="myAwesomeCookie"
-          style={{ background: '#2B373B' }}
-          buttonStyle={{ color: '#4e503b', fontSize: '13px' }}
-          expires={150}
-        >
-          Ce site utilise des cookies pour améliorer votre expérience.{' '}
-          <Link to="/confidentialite" style={{ color: '#fff' }}>En savoir plus</Link>
-        </CookieConsent>
-        <h1>E-commerce</h1>
-        <div>
-          {!token ? (
-            <>
-              <form onSubmit={handleLogin}>
-                <select value={role} onChange={(e) => setRole(e.target.value)}>
-                  <option value="client">Client</option>
-                  <option value="admin">Admin</option>
-                  <option value="vendeur">Vendeur</option>
-                </select>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email"
-                />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mot de passe"
-                />
-                <button type="submit">Connexion</button>
-                <p>Pour admin/vendeur, utilisez un lien dédié : <Link to="/admin-login">Admin/Vendeur</Link></p>
-              </form>
-              <form onSubmit={handleSignup}>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Prénom"
-                />
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Nom"
-                />
-                <input
-                  type="email"
-                  value={signupEmail}
-                  onChange={(e) => setSignupEmail(e.target.value)}
-                  placeholder="Email"
-                />
-                <input
-                  type="password"
-                  value={signupPassword}
-                  onChange={(e) => setSignupPassword(e.target.value)}
-                  placeholder="Mot de passe"
-                />
-                <button type="submit">Inscription</button>
-              </form>
-            </>
-          ) : (
-            <button onClick={handleLogout}>Déconnexion</button>
-          )}
-        </div>
-        <h2>Liste des produits</h2>
-        {products.length === 0 ? (
-          <p>Aucun produit disponible pour le moment.</p>
-        ) : (
-          <ul>
-            {products.map(product => (
-              <li key={product.id}>
-                {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
-                <button onClick={() => addToCart(product.id)} disabled={!token}>
-                  Ajouter au panier
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {token && Object.keys(cart).length > 0 && (
-          <div>
-            <h2>Panier</h2>
-            <ul>
-              {Object.entries(cart).map(([id, qty]) => {
-                const product = products.find(p => p.id === id);
-                return <li key={id}>{product.name} x{qty}</li>;
-              })}
-            </ul>
-            <button onClick={handleCheckout}>Passer commande</button>
-            {orderStatus && <p>Statut de votre dernière commande : {orderStatus}</p>}
-          </div>
-        )}
-      </div>
       <Routes>
         <Route path="/" element={
-          <>
-            {!token ? (
-              <>
-                <form onSubmit={handleLogin}>
-                  {/* Formulaire login */}
-                </form>
-                <form onSubmit={handleSignup}>
-                  {/* Formulaire signup */}
-                </form>
-              </>
-            ) : (
-              <button onClick={handleLogout}>Déconnexion</button>
-            )}
+          <div>
+            <CookieConsent
+              location="bottom"
+              buttonText="Accepter"
+              cookieName="myAwesomeCookie"
+              style={{ background: '#2B373B' }}
+              buttonStyle={{ color: '#4e503b', fontSize: '13px' }}
+              expires={150}
+            >
+              Ce site utilise des cookies pour améliorer votre expérience.{' '}
+              <Link to="/confidentialite" style={{ color: '#fff' }}>En savoir plus</Link>
+            </CookieConsent>
+            <h1>E-commerce</h1>
+            <div>
+              {!token ? (
+                <>
+                  <form onSubmit={handleLogin}>
+                    <select value={role} onChange={(e) => setRole(e.target.value)}>
+                      <option value="client">Client</option>
+                      <option value="admin">Admin</option>
+                      <option value="vendeur">Vendeur</option>
+                    </select>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email"
+                    />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Mot de passe"
+                    />
+                    <button type="submit">Connexion</button>
+                    <p>Pour admin/vendeur, utilisez un lien dédié : <Link to="/admin-login">Admin/Vendeur</Link></p>
+                  </form>
+                  <form onSubmit={handleSignup}>
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Prénom"
+                    />
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Nom"
+                    />
+                    <input
+                      type="email"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
+                      placeholder="Email"
+                    />
+                    <input
+                      type="password"
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
+                      placeholder="Mot de passe"
+                    />
+                    <button type="submit">Inscription</button>
+                  </form>
+                </>
+              ) : (
+                <button onClick={handleLogout}>Déconnexion</button>
+              )}
+            </div>
             <h2>Liste des produits</h2>
-            {products.length === 0 ? <p>Aucun produit...</p> : <ul>{/* Produits */}</ul>}
+            {products.length === 0 ? (
+              <p>Aucun produit disponible pour le moment.</p>
+            ) : (
+              <ul>
+                {products.map(product => (
+                  <li key={product.id}>
+                    {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
+                    <button onClick={() => addToCart(product.id)} disabled={!token}>
+                      Ajouter au panier
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             {token && Object.keys(cart).length > 0 && (
               <div>
                 <h2>Panier</h2>
-                <ul>{/* Panier */}</ul>
+                <ul>
+                  {Object.entries(cart).map(([id, qty]) => {
+                    const product = products.find(p => p.id === id);
+                    return <li key={id}>{product.name} x{qty}</li>;
+                  })}
+                </ul>
                 <button onClick={handleCheckout}>Passer commande</button>
+                {orderStatus && <p>Statut de votre dernière commande : {orderStatus}</p>}
               </div>
             )}
-          </>
+          </div>
         } />
         <Route path="/confidentialite" element={<Confidentialite />} />
         <Route path="/admin-login" element={<AdminLogin />} />
