@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-// Dans ton App.js, vérifie que l'import est :
-import CookieConsent from "react-cookie-consent";
+import { BrowserRouter as Router, Route, Routes, Link, useSearchParams } from 'react-router-dom';
+import CookieConsent from 'react-cookie-consent';
 import Confidentialite from './Confidentialite';
 import './styles.css';
 
@@ -13,81 +12,82 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('client'); // Par défaut client
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [orderStatus, setOrderStatus] = useState(null);
-  
+  const [searchParams] = useSearchParams();
+
   const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
 
-  // Charger les produits
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await axios.get(`${apiUrl}/products`);
+    axios.get(`${apiUrl}/products`)
+      .then(response => {
         const filteredProducts = response.data.filter(product => 
           product.product_variants && product.product_variants.length > 0
         );
         setProducts(filteredProducts);
-      } catch (error) {
+      })
+      .catch(error => {
         console.error('Erreur:', error);
         setError('Impossible de charger les produits. Réessayez plus tard.');
-      }
-    };
+      });
 
-    fetchProducts();
-  }, [apiUrl]);
-
-  // Charger le panier si connecté
-  useEffect(() => {
-    const fetchCart = async () => {
-      if (!token) return;
-      
-      try {
-        const response = await axios.get(`${apiUrl}/shopping-carts`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
+    if (token) {
+      axios.get(`${apiUrl}/shopping-carts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(response => {
         const newCart = {};
         response.data.forEach(item => {
-          newCart[item.product_variant_id] = item.quantity;
+          const product = products.find(p => p.product_variants.some(v => v.id === item.product_variant_id));
+          if (product) newCart[product.id] = item.quantity;
         });
         setCart(newCart);
-      } catch (err) {
-        console.error('Erreur chargement panier:', err);
-      }
-    };
+      })
+      .catch(err => console.error('Erreur chargement panier:', err));
+    }
 
-    fetchCart();
-  }, [token, apiUrl]);
+    const error = searchParams.get('error');
+    const errorCode = searchParams.get('error_code');
+    if (errorCode === 'otp_verified') {
+      setError('Email vérifié avec succès !');
+    } else if (error) {
+      setError(`Erreur de vérification: ${error} (${errorCode})`);
+    }
+  }, [token, products, searchParams]);
 
   const addToCart = async (productId) => {
     if (!token) {
       setError('Veuillez vous connecter pour ajouter au panier.');
       return;
     }
-    
     try {
       const product = products.find(p => p.id === productId);
-      if (!product || !product.product_variants[0]) return;
-      
       const variant = product.product_variants[0];
-      
-      await axios.post(
-        `${apiUrl}/shopping-carts`,
-        { product_variant_id: variant.id, quantity: 1 },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      setCart(prev => ({ 
-        ...prev, 
-        [variant.id]: (prev[variant.id] || 0) + 1 
-      }));
-      
+      const response = await axios.get(`${apiUrl}/shopping-carts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const existingItem = response.data.find(item => item.product_variants && item.product_variants[0]?.id === variant.id);
+      if (existingItem) {
+        await axios.put(
+          `${apiUrl}/shopping-carts/${existingItem.id}`,
+          { quantity: existingItem.quantity + 1 },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        await axios.post(
+          `${apiUrl}/shopping-carts`,
+          { product_variant_id: variant.id, quantity: 1 },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+      setCart(prev => ({ ...prev, [productId]: (prev[productId] || 0) + 1 }));
     } catch (err) {
-      console.error('Erreur ajout panier:', err);
-      setError('Erreur lors de l\'ajout au panier');
+      console.error('Erreur ajout panier:', err.response?.data || err.message);
+      setError(`Erreur lors de l’ajout au panier: ${err.response?.data?.error || err.message}. Réessayez.`);
     }
   };
 
@@ -99,9 +99,8 @@ function App() {
       setToken(newToken);
       localStorage.setItem('token', newToken);
       setError(null);
-      setEmail('');
-      setPassword('');
     } catch (err) {
+      console.error('Erreur login:', err);
       setError('Échec de la connexion. Vérifiez vos identifiants.');
     }
   };
@@ -112,7 +111,6 @@ function App() {
       setError('Tous les champs sont requis.');
       return;
     }
-    
     try {
       await axios.post(`${apiUrl}/auth/signup`, { 
         email: signupEmail, 
@@ -120,13 +118,14 @@ function App() {
         first_name: firstName, 
         last_name: lastName 
       });
-      setError('Inscription réussie ! Connectez-vous.');
+      setError('Inscription réussie. Vérifiez votre email.');
       setSignupEmail('');
       setSignupPassword('');
       setFirstName('');
       setLastName('');
     } catch (err) {
-      setError('Échec de l\'inscription. Réessayez.');
+      console.error('Erreur signup:', err);
+      setError(`Échec de l’inscription: ${err.response?.data?.error || err.message}. Réessayez.`);
     }
   };
 
@@ -141,170 +140,182 @@ function App() {
       setError('Veuillez vous connecter pour passer commande.');
       return;
     }
-    
     try {
-      const orderItems = Object.entries(cart).map(([variantId, quantity]) => ({
-        product_variant_id: parseInt(variantId),
-        quantity: quantity
-      }));
-      
+      const orderItems = Object.keys(cart).map(productId => {
+        const product = products.find(p => p.id === productId);
+        const variant = product.product_variants[0];
+        return { product_variant_id: variant.id, quantity: cart[productId] };
+      });
       await axios.post(
         `${apiUrl}/orders`,
         { items: orderItems },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+      const response = await axios.get(`${apiUrl}/orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const latestOrder = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      setOrderStatus(latestOrder?.status || 'Inconnu');
       alert('Commande passée avec succès ! (Simulation)');
+      alert('Email de confirmation envoyé ! (Simulation)');
       setCart({});
-      setOrderStatus('confirmed');
-      
     } catch (err) {
-      setError('Erreur lors de la commande');
+      console.error('Erreur checkout:', err.response?.data || err.message);
+      setError(`Erreur lors de la commande: ${err.response?.data?.error || err.message}. Réessayez.`);
     }
   };
 
-  // Composant principal
+  if (error) return <div className="error">{error}</div>;
+
   return (
     <Router>
-      <div className="app">
+      <div>
         <CookieConsent
           location="bottom"
           buttonText="Accepter"
-          cookieName="ecommerceCookie"
+          cookieName="myAwesomeCookie"
           style={{ background: '#2B373B' }}
           buttonStyle={{ color: '#4e503b', fontSize: '13px' }}
           expires={150}
         >
-          Ce site utilise des cookies pour améliorer votre expérience.
-          <Link to="/confidentialite" style={{ color: '#fff', marginLeft: '5px' }}>
-            En savoir plus
-          </Link>
+          Ce site utilise des cookies pour améliorer votre expérience.{' '}
+          <Link to="/confidentialite" style={{ color: '#fff' }}>En savoir plus</Link>
         </CookieConsent>
-
-        <header>
-          <h1>Boutique de Sneakers</h1>
-          
-          <div className="auth-section">
-            {!token ? (
-              <div className="auth-forms">
-                <form onSubmit={handleLogin} className="login-form">
-                  <h3>Connexion</h3>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email"
-                    required
-                  />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mot de passe"
-                    required
-                  />
-                  <button type="submit">Se connecter</button>
-                </form>
-
-                <form onSubmit={handleSignup} className="signup-form">
-                  <h3>Inscription</h3>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="Prénom"
-                    required
-                  />
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Nom"
-                    required
-                  />
-                  <input
-                    type="email"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    placeholder="Email"
-                    required
-                  />
-                  <input
-                    type="password"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
-                    placeholder="Mot de passe"
-                    required
-                  />
-                  <button type="submit">S'inscrire</button>
-                </form>
-              </div>
-            ) : (
-              <div className="user-section">
-                <button onClick={handleLogout} className="logout-btn">
-                  Déconnexion
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
-
-        <main>
-          {error && <div className="error-message">{error}</div>}
-
-          <section className="products-section">
-            <h2>Nos Sneakers</h2>
-            {products.length === 0 ? (
-              <p>Chargement des produits...</p>
-            ) : (
-              <div className="products-grid">
-                {products.map(product => (
-                  <div key={product.id} className="product-card">
-                    <h3>{product.name}</h3>
-                    <p>Prix: {product.base_price}€</p>
-                    <p>Stock: {product.product_variants[0]?.stock_quantity || 0}</p>
-                    <button 
-                      onClick={() => addToCart(product.id)} 
-                      disabled={!token || (product.product_variants[0]?.stock_quantity || 0) === 0}
-                    >
-                      {!token ? 'Connectez-vous' : 'Ajouter au panier'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {token && Object.keys(cart).length > 0 && (
-            <section className="cart-section">
-              <h2>Votre Panier</h2>
-              <div className="cart-items">
-                {Object.entries(cart).map(([variantId, quantity]) => {
-                  const product = products.find(p => 
-                    p.product_variants.some(v => v.id === parseInt(variantId))
-                  );
-                  const variant = product?.product_variants.find(v => v.id === parseInt(variantId));
-                  
-                  return product && variant ? (
-                    <div key={variantId} className="cart-item">
-                      <span>{product.name} (Taille: {variant.size}) x {quantity}</span>
-                    </div>
-                  ) : null;
-                })}
-              </div>
-              <button onClick={handleCheckout} className="checkout-btn">
-                Passer commande
-              </button>
-              {orderStatus && <p>Statut: {orderStatus}</p>}
-            </section>
+        <h1>E-commerce</h1>
+        <div>
+          {!token ? (
+            <>
+              <form onSubmit={handleLogin}>
+                <select value={role} onChange={(e) => setRole(e.target.value)}>
+                  <option value="client">Client</option>
+                  <option value="admin">Admin</option>
+                  <option value="vendeur">Vendeur</option>
+                </select>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mot de passe"
+                />
+                <button type="submit">Connexion</button>
+                <p>Pour admin/vendeur, utilisez un lien dédié : <Link to="/admin-login">Admin/Vendeur</Link></p>
+              </form>
+              <form onSubmit={handleSignup}>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Prénom"
+                />
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Nom"
+                />
+                <input
+                  type="email"
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  placeholder="Email"
+                />
+                <input
+                  type="password"
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  placeholder="Mot de passe"
+                />
+                <button type="submit">Inscription</button>
+              </form>
+            </>
+          ) : (
+            <button onClick={handleLogout}>Déconnexion</button>
           )}
-        </main>
-
-        <Routes>
-          <Route path="/confidentialite" element={<Confidentialite />} />
-        </Routes>
+        </div>
+        <h2>Liste des produits</h2>
+        {products.length === 0 ? (
+          <p>Aucun produit disponible pour le moment.</p>
+        ) : (
+          <ul>
+            {products.map(product => (
+              <li key={product.id}>
+                {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
+                <button onClick={() => addToCart(product.id)} disabled={!token}>
+                  Ajouter au panier
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {token && Object.keys(cart).length > 0 && (
+          <div>
+            <h2>Panier</h2>
+            <ul>
+              {Object.entries(cart).map(([id, qty]) => {
+                const product = products.find(p => p.id === id);
+                return <li key={id}>{product.name} x{qty}</li>;
+              })}
+            </ul>
+            <button onClick={handleCheckout}>Passer commande</button>
+            {orderStatus && <p>Statut de votre dernière commande : {orderStatus}</p>}
+          </div>
+        )}
       </div>
+      <Routes>
+        <Route path="/confidentialite" element={<Confidentialite />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
+      </Routes>
     </Router>
+  );
+}
+
+// Composant séparé pour admin/vendeur login
+function AdminLogin() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
+
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post(`${apiUrl}/auth/login`, { email, password });
+      const newToken = response.data.token;
+      localStorage.setItem('token', newToken);
+      window.location.href = '/'; // Redirige vers page principale
+    } catch (err) {
+      console.error('Erreur login admin:', err);
+      setError('Échec de la connexion. Vérifiez vos identifiants.');
+    }
+  };
+
+  return (
+    <div>
+      <h1>Connexion Admin/Vendeur</h1>
+      {error && <div className="error">{error}</div>}
+      <form onSubmit={handleAdminLogin}>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Mot de passe"
+        />
+        <button type="submit">Connexion</button>
+      </form>
+      <p>Utilisez vos identifiants admin ou vendeur fournis.</p>
+    </div>
   );
 }
 
