@@ -24,8 +24,8 @@ function App() {
         setProducts(response.data);
       })
       .catch(error => {
-        console.error('Erreur:', error);
-        setError('Impossible de charger les produits.');
+        console.error('Erreur API:', error);
+        setError('Erreur serveur. Réessayez plus tard.');
       });
 
     if (token) {
