@@ -3,7 +3,7 @@ import axios from 'axios';
 import { BrowserRouter as Router, Route, Routes, Link, useSearchParams } from 'react-router-dom';
 import CookieConsent from 'react-cookie-consent';
 import Confidentialite from './Confidentialite';
-import AdminLogin from './AdminLogin'; // Ajoute ce composant si séparé
+import AdminLogin from './AdminLogin';
 import './styles.css';
 
 function App() {
@@ -269,54 +269,36 @@ function App() {
         )}
       </div>
       <Routes>
+        <Route path="/" element={
+          <>
+            {/* Contenu principal ici */}
+            {!token ? (
+              <>
+                <form onSubmit={handleLogin}>
+                  {/* Formulaire login */}
+                </form>
+                <form onSubmit={handleSignup}>
+                  {/* Formulaire signup */}
+                </form>
+              </>
+            ) : (
+              <button onClick={handleLogout}>Déconnexion</button>
+            )}
+            <h2>Liste des produits</h2>
+            {products.length === 0 ? <p>Aucun produit...</p> : <ul>{/* Produits */}</ul>}
+            {token && Object.keys(cart).length > 0 && (
+              <div>
+                <h2>Panier</h2>
+                <ul>{/* Panier */}</ul>
+                <button onClick={handleCheckout}>Passer commande</button>
+              </div>
+            )}
+          </>
+        } />
         <Route path="/confidentialite" element={<Confidentialite />} />
         <Route path="/admin-login" element={<AdminLogin />} />
       </Routes>
     </Router>
-  );
-}
-
-// Composant AdminLogin (inline ici pour simplicité)
-function AdminLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
-  const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
-
-  const handleAdminLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post(`${apiUrl}/auth/login`, { email, password });
-      const newToken = response.data.token;
-      localStorage.setItem('token', newToken);
-      window.location.href = '/'; // Redirige vers page principale
-    } catch (err) {
-      console.error('Erreur login admin:', err);
-      setError('Échec de la connexion. Vérifiez vos identifiants.');
-    }
-  };
-
-  return (
-    <div>
-      <h1>Connexion Admin/Vendeur</h1>
-      {error && <div className="error">{error}</div>}
-      <form onSubmit={handleAdminLogin}>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Mot de passe"
-        />
-        <button type="submit">Connexion</button>
-      </form>
-      <p>Utilisez vos identifiants admin ou vendeur fournis.</p>
-    </div>
   );
 }
 
