@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { BrowserRouter as Router, Route, Routes, Link, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Link, useSearchParams } from 'react-router-dom';
 import CookieConsent from 'react-cookie-consent';
 import Confidentialite from './Confidentialite';
 import AdminLogin from './AdminLogin';
