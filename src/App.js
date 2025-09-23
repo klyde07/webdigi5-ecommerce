@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { BrowserRouter, Route, Routes, Link, useSearchParams } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Link, useSearchParams } from 'react-router-dom';
 import CookieConsent from 'react-cookie-consent';
 import Confidentialite from './Confidentialite';
 import AdminLogin from './AdminLogin';
@@ -24,31 +24,39 @@ function App() {
   const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
 
   useEffect(() => {
-    axios.get(`${apiUrl}/products`)
-      .then(response => {
-        const filteredProducts = response.data.filter(product => 
-          product.product_variants && product.product_variants.length > 0
-        );
-        setProducts(filteredProducts);
+    // Charger les produits uniquement si un token existe
+    if (token) {
+      axios.get(`${apiUrl}/products`, {
+        headers: { Authorization: `Bearer ${token}` }
       })
-      .catch(error => {
-        console.error('Erreur:', error);
-        setError('Impossible de charger les produits. Réessayez plus tard.');
-      });
+        .then(response => {
+          const filteredProducts = response.data.filter(product => 
+            product.product_variants && product.product_variants.length > 0
+          );
+          setProducts(filteredProducts);
+        })
+        .catch(error => {
+          console.error('Erreur:', error);
+          setError('Impossible de charger les produits. Réessayez plus tard ou vérifiez votre connexion.');
+        });
+    } else {
+      setProducts([]); // Pas de produits si pas connecté
+      setError('Veuillez vous connecter pour voir les produits.');
+    }
 
     if (token) {
       axios.get(`${apiUrl}/shopping-carts`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      .then(response => {
-        const newCart = {};
-        response.data.forEach(item => {
-          const product = products.find(p => p.product_variants.some(v => v.id === item.product_variant_id));
-          if (product) newCart[product.id] = item.quantity;
-        });
-        setCart(newCart);
-      })
-      .catch(err => console.error('Erreur chargement panier:', err));
+        .then(response => {
+          const newCart = {};
+          response.data.forEach(item => {
+            const product = products.find(p => p.product_variants.some(v => v.id === item.product_variant_id));
+            if (product) newCart[product.id] = item.quantity;
+          });
+          setCart(newCart);
+        })
+        .catch(err => console.error('Erreur chargement panier:', err));
     }
 
     const error = searchParams.get('error');
@@ -167,7 +175,7 @@ function App() {
   };
 
   if (error) return <div className="error">{error}</div>;
-  if (products.length === 0 && !error) return <div>Chargement...</div>;
+  if (products.length === 0 && !error && !token) return <div>Veuillez vous connecter pour voir les produits.</div>;
 
   return (
     <Router>
