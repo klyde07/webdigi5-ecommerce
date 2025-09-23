@@ -3,6 +3,7 @@ import axios from 'axios';
 import { BrowserRouter as Router, Route, Routes, Link, useSearchParams } from 'react-router-dom';
 import CookieConsent from 'react-cookie-consent';
 import Confidentialite from './Confidentialite';
+import AdminLogin from './AdminLogin'; // Ajoute ce composant si séparé
 import './styles.css';
 
 function App() {
@@ -12,7 +13,7 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('client'); // Par défaut client
+  const [role, setRole] = useState('client');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -275,7 +276,7 @@ function App() {
   );
 }
 
-// Composant séparé pour admin/vendeur login
+// Composant AdminLogin (inline ici pour simplicité)
 function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
