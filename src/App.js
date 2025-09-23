@@ -3,7 +3,7 @@ import axios from 'axios';
 import { BrowserRouter as Router, Route, Routes, Link, useSearchParams } from 'react-router-dom';
 import CookieConsent from 'react-cookie-consent';
 import Confidentialite from './Confidentialite';
-import AdminLogin from './AdminLogin';
+import AdminLogin from './AdminLogin'; // Importation unique
 import './styles.css';
 
 function App() {
@@ -271,7 +271,6 @@ function App() {
       <Routes>
         <Route path="/" element={
           <>
-            {/* Contenu principal ici */}
             {!token ? (
               <>
                 <form onSubmit={handleLogin}>
