@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import CookieConsent from 'react-cookie-consent';
 import './styles.css';
 
@@ -20,7 +19,6 @@ function App() {
   const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
 
   useEffect(() => {
-    // Charger les produits (public)
     axios.get(`${apiUrl}/products`)
       .then(response => {
         setProducts(response.data);
@@ -127,65 +125,63 @@ function App() {
   if (error) return <div className="error">{error}</div>;
 
   return (
-    <Router>
-      <div>
-        <CookieConsent
-          location="bottom"
-          buttonText="Accepter"
-          cookieName="myAwesomeCookie"
-          style={{ background: '#2B373B' }}
-          buttonStyle={{ color: '#4e503b', fontSize: '13px' }}
-          expires={150}
-        >
-          Cookies info
-        </CookieConsent>
-        <h1>E-commerce</h1>
-        {!token ? (
-          <>
-            <form onSubmit={handleLogin}>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mot de passe" />
-              <button type="submit">Connexion</button>
-            </form>
-            <form onSubmit={handleSignup}>
-              <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Prénom" />
-              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Nom" />
-              <input type="email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} placeholder="Email" />
-              <input type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} placeholder="Mot de passe" />
-              <button type="submit">Inscription</button>
-            </form>
-          </>
-        ) : (
-          <button onClick={handleLogout}>Déconnexion</button>
-        )}
-        <h2>Produits</h2>
-        {products.length === 0 ? (
-          <p>Chargement...</p>
-        ) : (
+    <div>
+      <CookieConsent
+        location="bottom"
+        buttonText="Accepter"
+        cookieName="myAwesomeCookie"
+        style={{ background: '#2B373B' }}
+        buttonStyle={{ color: '#4e503b', fontSize: '13px' }}
+        expires={150}
+      >
+        Cookies info
+      </CookieConsent>
+      <h1>E-commerce</h1>
+      {!token ? (
+        <>
+          <form onSubmit={handleLogin}>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mot de passe" />
+            <button type="submit">Connexion</button>
+          </form>
+          <form onSubmit={handleSignup}>
+            <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Prénom" />
+            <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Nom" />
+            <input type="email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} placeholder="Email" />
+            <input type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} placeholder="Mot de passe" />
+            <button type="submit">Inscription</button>
+          </form>
+        </>
+      ) : (
+        <button onClick={handleLogout}>Déconnexion</button>
+      )}
+      <h2>Produits</h2>
+      {products.length === 0 ? (
+        <p>Chargement...</p>
+      ) : (
+        <ul>
+          {products.map(product => (
+            <li key={product.id}>
+              {product.name} - {product.base_price}€
+              <button onClick={() => addToCart(product.id)} disabled={!token}>Ajouter</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {token && Object.keys(cart).length > 0 && (
+        <div>
+          <h2>Panier</h2>
           <ul>
-            {products.map(product => (
-              <li key={product.id}>
-                {product.name} - {product.base_price}€
-                <button onClick={() => addToCart(product.id)} disabled={!token}>Ajouter</button>
-              </li>
-            ))}
+            {Object.entries(cart).map(([id, qty]) => {
+              const product = products.find(p => p.id === id);
+              return <li key={id}>{product.name} x{qty}</li>;
+            })}
           </ul>
-        )}
-        {token && Object.keys(cart).length > 0 && (
-          <div>
-            <h2>Panier</h2>
-            <ul>
-              {Object.entries(cart).map(([id, qty]) => {
-                const product = products.find(p => p.id === id);
-                return <li key={id}>{product.name} x{qty}</li>;
-              })}
-            </ul>
-            <button onClick={handleCheckout}>Passer commande</button>
-            {orderStatus && <p>{orderStatus}</p>}
-          </div>
-        )}
-      </div>
-    </Router>
+          <button onClick={handleCheckout}>Passer commande</button>
+          {orderStatus && <p>{orderStatus}</p>}
+        </div>
+      )}
+    </div>
   );
 }
 
