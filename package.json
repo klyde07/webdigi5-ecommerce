@@ -1,7 +1,8 @@
 {
-  "name": "webdigi5-ecommerce",
+  "name": "ecommerce-frontend",
   "version": "1.0.0",
-  "description": "E-commerce React Frontend",
+  "description": "Interface utilisateur React pour application e-commerce",
+  "main": "index.js",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -11,12 +12,13 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.1",
+    "axios": "^1.6.8",
+    "react-router-dom": "^6.23.0",
     "react-cookie-consent": "^8.0.1",
-    "axios": "^1.6.0"
+    "styled-components": "^6.1.8"
   },
   "devDependencies": {
-    "react-scripts": "5.0.1"
+    "react-scripts": "^5.0.1"
   },
   "browserslist": {
     "production": [
@@ -30,8 +32,6 @@
       "last 1 safari version"
     ]
   },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
-  }
+  "author": "TonNom",
+  "license": "MIT"
 }
