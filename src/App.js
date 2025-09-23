@@ -3,7 +3,7 @@ import axios from 'axios';
 import { BrowserRouter as Router, Route, Routes, Link, useSearchParams } from 'react-router-dom';
 import CookieConsent from 'react-cookie-consent';
 import Confidentialite from './Confidentialite';
-import AdminLogin from './AdminLogin';
+import AdminLogin from './AdminLogin'; // On garde pour compatibilité, mais simplifié
 import './styles.css';
 
 function App() {
@@ -13,7 +13,6 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('client');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -24,7 +23,6 @@ function App() {
   const apiUrl = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-production-ce4e.up.railway.app';
 
   useEffect(() => {
-    // Charger les produits uniquement si un token existe
     if (token) {
       axios.get(`${apiUrl}/products`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -37,14 +35,9 @@ function App() {
         })
         .catch(error => {
           console.error('Erreur:', error);
-          setError('Impossible de charger les produits. Réessayez plus tard ou vérifiez votre connexion.');
+          setError('Impossible de charger les produits. Réessayez ou vérifiez votre connexion.');
         });
-    } else {
-      setProducts([]); // Pas de produits si pas connecté
-      setError('Veuillez vous connecter pour voir les produits.');
-    }
 
-    if (token) {
       axios.get(`${apiUrl}/shopping-carts`, {
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -57,6 +50,9 @@ function App() {
           setCart(newCart);
         })
         .catch(err => console.error('Erreur chargement panier:', err));
+    } else {
+      setProducts([]);
+      setError('Veuillez vous connecter pour voir les produits.');
     }
 
     const error = searchParams.get('error');
@@ -96,7 +92,7 @@ function App() {
       setCart(prev => ({ ...prev, [productId]: (prev[productId] || 0) + 1 }));
     } catch (err) {
       console.error('Erreur ajout panier:', err.response?.data || err.message);
-      setError(`Erreur lors de l’ajout au panier: ${err.response?.data?.error || err.message}. Réessayez.`);
+      setError(`Erreur ajout panier: ${err.response?.data?.error || err.message}. Réessayez.`);
     }
   };
 
@@ -134,7 +130,7 @@ function App() {
       setLastName('');
     } catch (err) {
       console.error('Erreur signup:', err);
-      setError(`Échec de l’inscription: ${err.response?.data?.error || err.message}. Réessayez.`);
+      setError(`Échec inscription: ${err.response?.data?.error || err.message}. Réessayez.`);
     }
   };
 
@@ -170,7 +166,7 @@ function App() {
       setCart({});
     } catch (err) {
       console.error('Erreur checkout:', err.response?.data || err.message);
-      setError(`Erreur lors de la commande: ${err.response?.data?.error || err.message}. Réessayez.`);
+      setError(`Erreur commande: ${err.response?.data?.error || err.message}. Réessayez.`);
     }
   };
 
@@ -190,59 +186,22 @@ function App() {
               buttonStyle={{ color: '#4e503b', fontSize: '13px' }}
               expires={150}
             >
-              Ce site utilise des cookies pour améliorer votre expérience.{' '}
-              <Link to="/confidentialite" style={{ color: '#fff' }}>En savoir plus</Link>
+              Ce site utilise des cookies. <Link to="/confidentialite">En savoir plus</Link>
             </CookieConsent>
             <h1>E-commerce</h1>
             <div>
               {!token ? (
                 <>
                   <form onSubmit={handleLogin}>
-                    <select value={role} onChange={(e) => setRole(e.target.value)}>
-                      <option value="client">Client</option>
-                      <option value="admin">Admin</option>
-                      <option value="vendeur">Vendeur</option>
-                    </select>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email"
-                    />
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Mot de passe"
-                    />
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mot de passe" />
                     <button type="submit">Connexion</button>
-                    <p>Pour admin/vendeur, utilisez un lien dédié : <Link to="/admin-login">Admin/Vendeur</Link></p>
                   </form>
                   <form onSubmit={handleSignup}>
-                    <input
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="Prénom"
-                    />
-                    <input
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Nom"
-                    />
-                    <input
-                      type="email"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      placeholder="Email"
-                    />
-                    <input
-                      type="password"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      placeholder="Mot de passe"
-                    />
+                    <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Prénom" />
+                    <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Nom" />
+                    <input type="email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} placeholder="Email" />
+                    <input type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} placeholder="Mot de passe" />
                     <button type="submit">Inscription</button>
                   </form>
                 </>
@@ -250,17 +209,15 @@ function App() {
                 <button onClick={handleLogout}>Déconnexion</button>
               )}
             </div>
-            <h2>Liste des produits</h2>
+            <h2>Produits</h2>
             {products.length === 0 ? (
-              <p>Aucun produit disponible pour le moment.</p>
+              <p>Aucun produit disponible.</p>
             ) : (
               <ul>
                 {products.map(product => (
                   <li key={product.id}>
                     {product.name} - {product.base_price}€ (Stock: {product.product_variants[0]?.stock_quantity || 0})
-                    <button onClick={() => addToCart(product.id)} disabled={!token}>
-                      Ajouter au panier
-                    </button>
+                    <button onClick={() => addToCart(product.id)} disabled={!token}>Ajouter au panier</button>
                   </li>
                 ))}
               </ul>
@@ -275,13 +232,13 @@ function App() {
                   })}
                 </ul>
                 <button onClick={handleCheckout}>Passer commande</button>
-                {orderStatus && <p>Statut de votre dernière commande : {orderStatus}</p>}
+                {orderStatus && <p>Statut commande: {orderStatus}</p>}
               </div>
             )}
           </div>
         } />
         <Route path="/confidentialite" element={<Confidentialite />} />
-        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/admin-login" element={<AdminLogin />} /> {/* Garde pour compatibilité, simplifie si besoin */}
       </Routes>
     </Router>
   );
