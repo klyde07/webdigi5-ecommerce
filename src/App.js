@@ -167,6 +167,7 @@ function App() {
   };
 
   if (error) return <div className="error">{error}</div>;
+  if (products.length === 0 && !error) return <div>Chargement...</div>;
 
   return (
     <Router>
